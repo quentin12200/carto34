@@ -176,8 +176,41 @@
   </style>
 </head>
 <body>
+  <div id="password-modal" style="position:fixed;z-index:99999;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.97);display:flex;align-items:center;justify-content:center;flex-direction:column;">
+    <div style="background:#fff;border:2px solid #b00000;border-radius:14px;padding:2em;box-shadow:0 4px 24px #b0000040;min-width:300px;text-align:center;">
+      <h2 style="color:#b00000;margin-bottom:1em;">Accès protégé</h2>
+      <input id="password-input" type="password" placeholder="Mot de passe" style="font-size:1.1em;padding:0.5em 1em;border-radius:8px;border:1.5px solid #b00000;outline:none;margin-bottom:1em;width:90%;max-width:250px;" autofocus />
+      <br>
+      <button id="password-submit" style="background:#b00000;color:#fff;font-weight:bold;padding:0.5em 2em;border-radius:8px;border:none;font-size:1.1em;cursor:pointer;">Valider</button>
+      <div id="password-error" style="color:#b00000;margin-top:1em;display:none;">Mot de passe incorrect</div>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var modal = document.getElementById('password-modal');
+      var input = document.getElementById('password-input');
+      var btn = document.getElementById('password-submit');
+      var error = document.getElementById('password-error');
+      function checkPassword() {
+        if(input.value === 'VS34000') {
+          modal.style.display = 'none';
+          document.body.style.overflow = '';
+        } else {
+          error.style.display = '';
+          input.value = '';
+          input.focus();
+        }
+      }
+      btn.addEventListener('click', checkPassword);
+      input.addEventListener('keyup', function(e) {
+        if(e.key === 'Enter') checkPassword();
+      });
+      input.focus();
+      document.body.style.overflow = 'hidden';
+    });
+  </script>
   <header style="display:flex;align-items:center;justify-content:flex-start;margin-bottom:1em;">
-    <img src="logo-cgt.png" alt="Logo CGT" style="height:54px;margin-right:18px;border-radius:10px;box-shadow:0 2px 8px #b0000050;">
+    <img src="logoud34.jpg" alt="Logo CGT" style="height:54px;margin-right:18px;border-radius:10px;box-shadow:0 2px 8px #b0000050;">
     <h2 style="margin:0;font-family:'Arial Black','Segoe UI',sans-serif;font-size:2.1em;color:#b00000;letter-spacing:1px;text-shadow:1px 1px 0 #fff,2px 2px 0 #b0000022;">Carte CGT - Voix Syndicales en Hérault</h2>
   </header>
 
