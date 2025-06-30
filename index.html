@@ -511,13 +511,28 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
           
           // Aussi lier le popup pour compatibilité
           layer.bindPopup(popupContent, {maxWidth: 400, maxHeight: 300});
-        }
+}
+        window.bindPopupSyndicat = bindPopupSyndicat; // Rendre la fonction globale pour Leaflet
         // Créer une couche pour tous les points (sans filtrage) - au premier plan
         const allPointsLayer = L.geoJSON(data, {
           pointToLayer: function(feature, latlng) {
+            // Déterminer le syndicat majoritaire pour ce point
+            const syndicatVoix = {};
+            Object.keys(syndicatColors).forEach(syndicat => {
+              const voix = parseFloat(feature.properties[syndicat] || 0);
+              if (!isNaN(voix)) syndicatVoix[syndicat] = voix;
+            });
+            let maxSyndicat = 'AUTRES';
+            let maxVoix = -1;
+            Object.entries(syndicatVoix).forEach(([syndicat, voix]) => {
+              if (voix > maxVoix) {
+                maxVoix = voix;
+                maxSyndicat = syndicat;
+              }
+            });
             return L.circleMarker(latlng, {
               radius: 8,
-              fillColor: "#b00000",
+              fillColor: syndicatColors[maxSyndicat] || '#aaaaaa',
               color: "#333",
               weight: 1,
               opacity: 1,
@@ -526,7 +541,6 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
           },
           onEachFeature: function(feature, layer) {
             bindPopupSyndicat(feature, layer);
-            
             // Ajouter des effets de survol
             layer.on('mouseover', function() {
               layer.setStyle({
@@ -535,7 +549,6 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
                 weight: 2
               });
             });
-            
             layer.on('mouseout', function() {
               layer.setStyle({
                 radius: 8,
@@ -685,6 +698,16 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
           const props = feature.properties;
           const type = props.Type || props.type || '';
           typesUniques.add(type);
+
+          // Log détaillé pour le premier point
+          if (index === 0) {
+            console.log('--- DIAGNOSTIC CARANCE ---');
+            console.log('Propriétés du premier établissement:', props);
+            console.log('Clés syndicatColors:', Object.keys(syndicatColors));
+            Object.keys(syndicatColors).forEach(syndicat => {
+              console.log(`Valeur pour ${syndicat}:`, props[syndicat]);
+            });
+          }
           
           const isCarence = type.toUpperCase().includes('CARENCE') || type.toUpperCase() === 'CARENCE';
           
@@ -710,37 +733,48 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
         console.log('Types uniques trouvés:', Array.from(typesUniques));
         console.log(`Analyse: ${carencesCountAnalyse} carences sur ${totalFeatures} entreprises`);
         
-        const carencesLayer = L.geoJSON(window.geoJsonData, {
-          filter: feature => {
-            const props = feature.properties;
-            const type = props.Type || props.type || '';
-            return type.toUpperCase().includes('CARENCE') || type.toUpperCase() === 'CARENCE';
-          },
-          pointToLayer: (feature, latlng) => {
-            return L.circleMarker(latlng, {
-              radius: 8,
-              fillColor: '#999',
-              color: '#666',
-              weight: 2,
-              opacity: 1,
-              fillOpacity: 0.7,
-              pane: 'markerPane'
-            });
-          },
-          onEachFeature: bindPopupSyndicat
-        });
-        
-        carencesLayer.addTo(map);
-        
-        // Compter les entreprises en carence
-        const carencesCount = carencesLayer.getLayers().length;
-        console.log('Nombre d\'entreprises en carence:', carencesCount);
-        document.getElementById('syndicat-stats').innerHTML = `<strong>Entreprises en Carence:</strong> ${carencesCount} établissements`;
-        
-        // Centrer la carte sur les entreprises en carence
-        if (carencesCount > 0) {
-          map.fitBounds(carencesLayer.getBounds());
-        }
+        // --- Variable globale pour la couche carence ---
+if (typeof carencesLayer === 'undefined') {
+  window.carencesLayer = null;
+}
+
+// --- Début toggle ---
+if (window.carencesLayer && map.hasLayer(window.carencesLayer)) {
+  map.removeLayer(window.carencesLayer);
+  window.carencesLayer = null;
+  // Remettre la couche "Tous" si dispo
+  if (typeof allLayerGroup !== 'undefined' && allLayerGroup) allLayerGroup.addTo(map);
+  document.getElementById('syndicat-stats').innerHTML = '';
+  return;
+}
+if (window.carencesLayer) {
+  map.removeLayer(window.carencesLayer);
+  window.carencesLayer = null;
+}
+window.carencesLayer = L.geoJSON(window.geoJsonData, {
+    filter: feature => {
+      const type = (feature.properties.Type || feature.properties.type || '').trim();
+      return type === 'Carence';
+    },
+    pointToLayer: (feature, latlng) => {
+      console.log('[Carence] Marker:', feature.properties['Raison sociale'], latlng);
+      return L.circleMarker(latlng, {
+        radius: 8,
+        fillColor: '#111',
+        color: '#111',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.9,
+        pane: 'markerPane'
+      });
+    },
+    onEachFeature: bindPopupSyndicat
+  });
+  console.log('carencesLayer.getLayers().length =', carencesLayer.getLayers().length);
+  window.carencesLayer.addTo(map);
+  if (carencesLayer.getLayers().length > 0) {
+    map.fitBounds(carencesLayer.getBounds());
+  }
       } else {
         console.error('Données GeoJSON non disponibles pour les carences');
         document.getElementById('syndicat-stats').innerHTML = '<strong>Erreur:</strong> Données non chargées';
@@ -782,7 +816,13 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
       document.getElementById('fd-select').style.display = 'none';
       document.getElementById('fd-exit-btn').style.display = 'none';
       document.getElementById('fd-view-btn').style.display = '';
-      if (typeof fdLayer !== 'undefined' && fdLayer) map.removeLayer(fdLayer);
+      // Supprimer la couche FD
+      if (window.fdLayer && map.hasLayer(window.fdLayer)) {
+        map.removeLayer(window.fdLayer);
+        window.fdLayer = null;
+      }
+      // Remettre la couche "Tous"
+      if (typeof allLayerGroup !== 'undefined' && allLayerGroup) allLayerGroup.addTo(map);
       showSyndicat('ALL');
       // Remettre le bouton "Tous" en actif
       document.querySelector(`#syndicat-filters button[onclick*="'ALL'"]`).classList.add('active');
@@ -792,14 +832,30 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
     function filterByFD() {
       const fdSelect = document.getElementById('fd-select');
       const fd = fdSelect.value;
-      if (typeof fdLayer !== 'undefined' && fdLayer) map.removeLayer(fdLayer);
+
+      // Supprimer la couche FD précédente si elle existe
+      if (window.fdLayer && map.hasLayer(window.fdLayer)) {
+        map.removeLayer(window.fdLayer);
+        window.fdLayer = null;
+      }
+      // Supprimer la couche carence si elle est affichée
+      if (window.carencesLayer && map.hasLayer(window.carencesLayer)) {
+        map.removeLayer(window.carencesLayer);
+        window.carencesLayer = null;
+      }
+      // Supprimer la couche "Tous" si elle est affichée
+      if (typeof allLayerGroup !== 'undefined' && allLayerGroup && map.hasLayer(allLayerGroup)) {
+        map.removeLayer(allLayerGroup);
+      }
+
       if (!fd) return;
       // Filtrer et afficher tous les points de la FD sélectionnée (casse/espaces ignorés)
-      fdLayer = L.geoJSON(voixData, {
+      window.fdLayer = L.geoJSON(voixData, {
         filter: function(feature) {
-          const ffd = (feature.properties['FD'] || '').trim().toLowerCase();
-          const fsel = (fd || '').trim().toLowerCase();
-          return ffd === fsel;
+          // Filtrage strict sur la valeur, mais trim pour ignorer espaces parasites
+          const fdProp = (feature.properties['FD'] || '').trim();
+          const fdSel = (fd || '').trim();
+          return fdProp === fdSel;
         },
         pointToLayer: function(feature, latlng) {
           return L.circleMarker(latlng, {
@@ -889,6 +945,7 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
         <i style='background:#e6007e;border-radius:50%;width:10px;height:10px;display:inline-block;margin-right:4px;'></i> Solidaires<br>
         <i style='background:#00bfff;border-radius:50%;width:10px;height:10px;display:inline-block;margin-right:4px;'></i> UNSA<br>
         <i style='background:#aaaaaa;border-radius:50%;width:10px;height:10px;display:inline-block;margin-right:4px;'></i> Autres<br>
+        <i style='background:#111;border-radius:50%;width:10px;height:10px;display:inline-block;margin-right:4px; border:1px solid #111;'></i> Carence<br>
         <span style='color:#b00000;'>—</span> Département<br>
         <span style='color:#999;'>—</span> Communes`;
       return div;
