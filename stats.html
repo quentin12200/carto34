@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Statistiques CGT</title>
+<style>
+body { font-family:'Segoe UI','Arial',sans-serif; background:#fdf8f6; color:#222; text-align:center; padding:1em; }
+header { display:flex; align-items:center; margin-bottom:1em; }
+header img { height:54px; margin-right:18px; border-radius:10px; box-shadow:0 2px 8px #b0000050; }
+h2 { margin:0; font-size:2.1em; color:#b00000; }
+button { padding:0.5em 1.2em; border:1.5px solid #b00000; background:#fff; color:#b00000; font-weight:bold; border-radius:20px; cursor:pointer; }
+button:hover { background:#b00000; color:#fff; }
+.stat-table { margin:1em auto; border-collapse:collapse; }
+.stat-table th, .stat-table td { border:1px solid #b00000; padding:0.4em 0.8em; }
+.stat-table th { background:#ffeaea; }
+</style>
+</head>
+<body>
+<header>
+  <img src="logoud34.jpg" alt="Logo CGT">
+  <h2>Statistiques CGT</h2>
+</header>
+<div style="margin-bottom:1em;">
+  <button onclick="location.href='index.html'">Retour carte</button>
+</div>
+<div id="stats"></div>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+function aggregate(data,key,value){
+  return data.reduce((acc,row)=>{
+    const k=row[key]||'';
+    acc[k]=(acc[k]||0)+parseFloat(row[value]||0);
+    return acc;
+  },{});
+}
+function aggregateDual(data,key,val1,val2){
+  return data.reduce((acc,row)=>{
+    const k=row[key]||'';
+    if(!acc[k]) acc[k]={a:0,b:0};
+    acc[k].a+=parseFloat(row[val1]||0);
+    acc[k].b+=parseFloat(row[val2]||0);
+    return acc;
+  },{});
+}
+function renderTable(title,obj,label){
+  let html='<h3>'+title+'</h3><table class="stat-table"><thead><tr><th>'+label+'</th><th>Total</th></tr></thead><tbody>';
+  Object.keys(obj).sort().forEach(k=>{
+    html+='<tr><td>'+k+'</td><td>'+obj[k].toLocaleString('fr-FR')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('stats').innerHTML+=html;
+}
+function renderTableDual(title,obj,label1,label2){
+  let html='<h3>'+title+'</h3><table class="stat-table"><thead><tr><th>'+label1+'</th><th>Inscrits</th><th>Voix CGT</th></tr></thead><tbody>';
+  Object.keys(obj).sort().forEach(k=>{
+    html+='<tr><td>'+k+'</td><td>'+obj[k].a.toLocaleString('fr-FR')+'</td><td>'+obj[k].b.toLocaleString('fr-FR')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('stats').innerHTML+=html;
+}
+Papa.parse('pv34complet.csv',{
+  download:true,
+  header:true,
+  skipEmptyLines:true,
+  complete:function(res){
+    const data=res.data;
+    renderTable("Inscrits par collège", aggregate(data,'Coll','Inscrits'),'Collège');
+    renderTable("Inscrits par FD", aggregate(data,'FD','Inscrits'),'FD');
+    renderTable("Inscrits par IDCC", aggregate(data,'IDCC','Inscrits'),'IDCC');
+    renderTable("Voix CGT par FD", aggregate(data,'FD','CGT'),'FD');
+    renderTableDual("Inscrits et voix CGT par UL", aggregateDual(data,'UL','Inscrits','CGT'),'UL');
+  }
+});
+</script>
+</body>
+</html>
