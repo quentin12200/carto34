@@ -789,11 +789,17 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
     }
     window.exitFDView = exitFDView;
 
-    function filterByFD() {
-      const fdSelect = document.getElementById('fd-select');
-      const fd = fdSelect.value;
-      if (typeof fdLayer !== 'undefined' && fdLayer) map.removeLayer(fdLayer);
-      if (!fd) return;
+      function filterByFD() {
+        const fdSelect = document.getElementById('fd-select');
+        const fd = fdSelect.value;
+        // stocker la FD courante pour filtrer le tableau
+        window.currentFD = fd || null;
+        if (typeof fdLayer !== 'undefined' && fdLayer) map.removeLayer(fdLayer);
+        if (!fd) {
+          updateFDStats(null);
+          filterAndDisplay();
+          return;
+        }
       // Filtrer et afficher tous les points de la FD sélectionnée (casse/espaces ignorés)
       fdLayer = L.geoJSON(voixData, {
         filter: function(feature) {
@@ -816,9 +822,11 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
           const popup = `<b>${props['Nom']||props['Raison sociale']||'?'}</b><br>FD: ${props['FD']||'?'}` + (props['Commune'] ? `<br>Commune: ${props['Commune']}` : '');
           layer.bindPopup(popup);
         }
-      }).addTo(map);
-    }
-    window.filterByFD = filterByFD;
+        }).addTo(map);
+        updateFDStats(fd);
+        filterAndDisplay();
+      }
+      window.filterByFD = filterByFD;
 
     function updateFDStats(fd) {
       const statsDiv = document.getElementById('syndicat-stats');
@@ -1057,21 +1065,27 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
     triggerMissingTable();
 
     // Met à jour le tableau quand on clique sur un bouton syndicat
-    document.addEventListener('DOMContentLoaded', function() {
-      setTimeout(function() {
-        document.querySelectorAll('#syndicat-filters button').forEach(btn => {
-          btn.addEventListener('click', function() {
-            // Détecter le nom du syndicat (par l'argument de la fonction JS dans onclick)
-            const match = this.getAttribute('onclick') && this.getAttribute('onclick').match(/showSyndicat\('([^']+)'\)/);
-            if(match && match[1] && match[1] !== 'ALL') {
-              window.selectedSyndicat = match[1];
-              triggerMissingTable();
-            }
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          document.querySelectorAll('#syndicat-filters button').forEach(btn => {
+            btn.addEventListener('click', function() {
+              // Détecter le nom du syndicat (par l'argument de la fonction JS dans onclick)
+              const match = this.getAttribute('onclick') && this.getAttribute('onclick').match(/showSyndicat\('([^']+)'\)/);
+              if(match && match[1] && match[1] !== 'ALL') {
+                window.selectedSyndicat = match[1];
+                triggerMissingTable();
+              }
+            });
           });
-        });
-      }, 1000); // attendre que les boutons soient dans le DOM
-    });
-    // CSS moderne et responsive pour le tableau
+        }, 1000); // attendre que les boutons soient dans le DOM
+      });
+      document.addEventListener('DOMContentLoaded', function() {
+        const fdSelect = document.getElementById('fd-select');
+        if (fdSelect) {
+          fdSelect.addEventListener('change', filterByFD);
+        }
+      });
+      // CSS moderne et responsive pour le tableau
     var style = document.createElement('style');
     style.innerHTML = `
       .table-scroll-sync {width:100%;}

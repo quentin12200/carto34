@@ -832,6 +832,8 @@ window.carencesLayer = L.geoJSON(window.geoJsonData, {
     function filterByFD() {
       const fdSelect = document.getElementById('fd-select');
       const fd = fdSelect.value;
+      // stocker la FD courante pour le filtrage du tableau
+      window.currentFD = fd || null;
 
       // Supprimer la couche FD précédente si elle existe
       if (window.fdLayer && map.hasLayer(window.fdLayer)) {
@@ -848,7 +850,11 @@ window.carencesLayer = L.geoJSON(window.geoJsonData, {
         map.removeLayer(allLayerGroup);
       }
 
-      if (!fd) return;
+      if (!fd) {
+        updateFDStats(null);
+        filterAndDisplay();
+        return;
+      }
       // Filtrer et afficher tous les points de la FD sélectionnée (casse/espaces ignorés)
       window.fdLayer = L.geoJSON(voixData, {
         filter: function(feature) {
@@ -873,6 +879,8 @@ window.carencesLayer = L.geoJSON(window.geoJsonData, {
           layer.bindPopup(popup);
         }
       }).addTo(map);
+      updateFDStats(fd);
+      filterAndDisplay();
     }
     window.filterByFD = filterByFD;
 
@@ -1127,6 +1135,12 @@ window.carencesLayer = L.geoJSON(window.geoJsonData, {
           });
         });
       }, 1000); // attendre que les boutons soient dans le DOM
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+      const fdSelect = document.getElementById('fd-select');
+      if (fdSelect) {
+        fdSelect.addEventListener('change', filterByFD);
+      }
     });
     // CSS moderne et responsive pour le tableau
     var style = document.createElement('style');
