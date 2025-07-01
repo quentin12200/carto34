@@ -6,7 +6,7 @@
 <style>
   body {
     font-family: 'Segoe UI','Arial',sans-serif;
-    background: linear-gradient(120deg,#fff 0%,#fdf6f6 60%,#fff0f0 100%);
+    background: linear-gradient(120deg,#fff 0%,#fdf4f4 60%,#ffecec 100%);
     color:#222;
     text-align:center;
     padding:1em;
@@ -17,6 +17,11 @@
     align-items:center;
     justify-content:flex-start;
     margin-bottom:1em;
+    background:#fff;
+    border:2px solid #b00000;
+    border-radius:12px;
+    padding:0.6em 1em;
+    box-shadow:0 2px 12px #b0000033;
   }
   header img {
     height:54px;
@@ -153,7 +158,6 @@ Papa.parse('pv34complet.csv',{
     showTotals(totals);
     renderTable('Inscrits par coll\u00e8ge', aggregate(data,'Coll','Inscrits'),'Coll\u00e8ge');
     renderTable('Inscrits par FD', aggregate(data,'FD','Inscrits'),'FD');
-    renderTable('Inscrits par IDCC', aggregate(data,'IDCC','Inscrits'),'IDCC');
     renderTable('Voix CGT par FD', aggregate(data,'FD','CGT'),'FD');
     renderTableDual('Inscrits et voix CGT par UL', aggregateDual(data,'UL','Inscrits','CGT'),'UL');
   }

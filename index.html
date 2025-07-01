@@ -5,14 +5,39 @@
   <title>Carte CGT - Voix Syndicales</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <style>
-    body {
-      font-family: 'Segoe UI', 'Arial', sans-serif;
-      background-color: #fdf8f6;
-      color: #222;
-      text-align: center;
-      padding: 1em;
-      margin: 0;
-    }
+  body {
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    background-color: #fdf8f6;
+    color: #222;
+    text-align: center;
+    padding: 1em;
+    margin: 0;
+  }
+  header {
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    margin-bottom:1em;
+    background:#fff;
+    border:2px solid #b00000;
+    border-radius:12px;
+    padding:0.6em 1em;
+    box-shadow:0 2px 12px #b0000033;
+  }
+  header img {
+    height:54px;
+    margin-right:18px;
+    border-radius:10px;
+    box-shadow:0 2px 8px #b0000050;
+  }
+  h2 {
+    margin:0;
+    font-family:'Arial Black','Segoe UI',sans-serif;
+    font-size:2.1em;
+    color:#b00000;
+    letter-spacing:1px;
+    text-shadow:1px 1px 0 #fff,2px 2px 0 #b0000022;
+  }
     #map {
       height: 70vh;
       width: 65%;
@@ -40,13 +65,6 @@
       gap: 1em;
       justify-content: center;
       align-items: flex-start;
-    }
-    h2 {
-      color: #b00000;
-      text-transform: uppercase;
-      font-size: 2em;
-      margin-bottom: 0.2em;
-      letter-spacing: 1px;
     }
     #syndicat-filters {
       display: flex;
@@ -134,7 +152,7 @@
   </style>
   <style>
     body {
-      background: linear-gradient(120deg,#fff 0%,#fdf6f6 60%,#fff0f0 100%);
+      background: linear-gradient(120deg,#fff 0%,#fdf4f4 60%,#ffecec 100%);
     }
     #ux-bar input:focus {
       background: #fff6f6;
@@ -209,9 +227,9 @@
       document.body.style.overflow = 'hidden';
     });
   </script>
-  <header style="display:flex;align-items:center;justify-content:flex-start;margin-bottom:1em;">
-    <img src="logoud34.jpg" alt="Logo CGT" style="height:54px;margin-right:18px;border-radius:10px;box-shadow:0 2px 8px #b0000050;">
-    <h2 style="margin:0;font-family:'Arial Black','Segoe UI',sans-serif;font-size:2.1em;color:#b00000;letter-spacing:1px;text-shadow:1px 1px 0 #fff,2px 2px 0 #b0000022;">Carte CGT - Voix Syndicales en Hérault</h2>
+  <header>
+    <img src="logoud34.jpg" alt="Logo CGT">
+    <h2>Carte CGT - Voix Syndicales en Hérault</h2>
   </header>
 
   <div id="syndicat-filters" style="margin-bottom: 1em;">
