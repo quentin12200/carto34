@@ -4,25 +4,99 @@
 <meta charset="UTF-8">
 <title>Statistiques CGT</title>
 <style>
-body { font-family:'Segoe UI','Arial',sans-serif; background:#fdf8f6; color:#222; text-align:center; padding:1em; }
-header { display:flex; align-items:center; margin-bottom:1em; }
-header img { height:54px; margin-right:18px; border-radius:10px; box-shadow:0 2px 8px #b0000050; }
-h2 { margin:0; font-size:2.1em; color:#b00000; }
-button { padding:0.5em 1.2em; border:1.5px solid #b00000; background:#fff; color:#b00000; font-weight:bold; border-radius:20px; cursor:pointer; }
-button:hover { background:#b00000; color:#fff; }
-.stat-table { margin:1em auto; border-collapse:collapse; }
-.stat-table th, .stat-table td { border:1px solid #b00000; padding:0.4em 0.8em; }
-.stat-table th { background:#ffeaea; }
+  body {
+    font-family: 'Segoe UI','Arial',sans-serif;
+    background: linear-gradient(120deg,#fff 0%,#fdf6f6 60%,#fff0f0 100%);
+    color:#222;
+    text-align:center;
+    padding:1em;
+    margin:0;
+  }
+  header {
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    margin-bottom:1em;
+  }
+  header img {
+    height:54px;
+    margin-right:18px;
+    border-radius:10px;
+    box-shadow:0 2px 8px #b0000050;
+  }
+  h2 {
+    margin:0;
+    font-family:'Arial Black','Segoe UI',sans-serif;
+    font-size:2.1em;
+    color:#b00000;
+    letter-spacing:1px;
+    text-shadow:1px 1px 0 #fff,2px 2px 0 #b0000022;
+  }
+  #summary {
+    background:#fff7f7;
+    border:1.5px solid #b00000;
+    border-radius:12px;
+    display:inline-block;
+    padding:0.6em 1.4em;
+    margin-bottom:1.2em;
+    font-size:1.15em;
+    color:#b00000;
+    box-shadow:0 2px 10px #b0000022;
+  }
+  button {
+    padding:0.5em 1.2em;
+    border:1.5px solid #b00000;
+    background:#fff;
+    color:#b00000;
+    font-weight:bold;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  button:hover {
+    background:#b00000;
+    color:#fff;
+  }
+  h3 {
+    color:#b00000;
+    margin:1.2em 0 0.4em;
+  }
+  .stat-table {
+    width:80%;
+    max-width:1000px;
+    margin:0 auto 1.5em;
+    border-collapse:collapse;
+    box-shadow:0 2px 12px #b0000022;
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .stat-table th, .stat-table td {
+    border:1px solid #b00000;
+    padding:0.45em 0.8em;
+  }
+  .stat-table th {
+    background:#b00000;
+    color:#fff;
+    font-weight:bold;
+    text-transform:uppercase;
+  }
+  .stat-table td:first-child { text-align:left; }
+  .stat-table td { text-align:right; }
+  .stat-table tr:nth-child(even) { background:#fff3f3; }
+  @media (max-width:700px) {
+    .stat-table { width:100%; font-size:0.92em; }
+    #summary { font-size:1em; }
+  }
 </style>
 </head>
 <body>
 <header>
   <img src="logoud34.jpg" alt="Logo CGT">
-  <h2>Statistiques CGT</h2>
+  <h2>Statistiques CGT - Hérault</h2>
 </header>
 <div style="margin-bottom:1em;">
   <button onclick="location.href='index.html'">Retour carte</button>
 </div>
+<div id="summary"></div>
 <div id="stats"></div>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script>
@@ -44,7 +118,7 @@ function aggregateDual(data,key,val1,val2){
 }
 function renderTable(title,obj,label){
   let html='<h3>'+title+'</h3><table class="stat-table"><thead><tr><th>'+label+'</th><th>Total</th></tr></thead><tbody>';
-  Object.keys(obj).sort().forEach(k=>{
+  Object.keys(obj).sort((a,b)=>obj[b]-obj[a]).forEach(k=>{
     html+='<tr><td>'+k+'</td><td>'+obj[k].toLocaleString('fr-FR')+'</td></tr>';
   });
   html+='</tbody></table>';
@@ -52,11 +126,17 @@ function renderTable(title,obj,label){
 }
 function renderTableDual(title,obj,label1,label2){
   let html='<h3>'+title+'</h3><table class="stat-table"><thead><tr><th>'+label1+'</th><th>Inscrits</th><th>Voix CGT</th></tr></thead><tbody>';
-  Object.keys(obj).sort().forEach(k=>{
+  Object.keys(obj).sort((a,b)=>obj[b].a-obj[a].a).forEach(k=>{
     html+='<tr><td>'+k+'</td><td>'+obj[k].a.toLocaleString('fr-FR')+'</td><td>'+obj[k].b.toLocaleString('fr-FR')+'</td></tr>';
   });
   html+='</tbody></table>';
   document.getElementById('stats').innerHTML+=html;
+}
+function showTotals(t){
+  document.getElementById('summary').innerText=
+    'Inscrits : '+t.inscrits.toLocaleString('fr-FR')+
+    ' \u2013 Votants : '+t.votants.toLocaleString('fr-FR')+
+    ' \u2013 Voix CGT : '+t.cgt.toLocaleString('fr-FR');
 }
 Papa.parse('pv34complet.csv',{
   download:true,
@@ -64,11 +144,18 @@ Papa.parse('pv34complet.csv',{
   skipEmptyLines:true,
   complete:function(res){
     const data=res.data;
-    renderTable("Inscrits par collège", aggregate(data,'Coll','Inscrits'),'Collège');
-    renderTable("Inscrits par FD", aggregate(data,'FD','Inscrits'),'FD');
-    renderTable("Inscrits par IDCC", aggregate(data,'IDCC','Inscrits'),'IDCC');
-    renderTable("Voix CGT par FD", aggregate(data,'FD','CGT'),'FD');
-    renderTableDual("Inscrits et voix CGT par UL", aggregateDual(data,'UL','Inscrits','CGT'),'UL');
+    const totals=data.reduce((acc,row)=>{
+      acc.inscrits+=parseFloat(row['Inscrits']||0);
+      acc.votants+=parseFloat(row['Votants']||0);
+      acc.cgt+=parseFloat(row['CGT']||0);
+      return acc;
+    },{inscrits:0,votants:0,cgt:0});
+    showTotals(totals);
+    renderTable('Inscrits par coll\u00e8ge', aggregate(data,'Coll','Inscrits'),'Coll\u00e8ge');
+    renderTable('Inscrits par FD', aggregate(data,'FD','Inscrits'),'FD');
+    renderTable('Inscrits par IDCC', aggregate(data,'IDCC','Inscrits'),'IDCC');
+    renderTable('Voix CGT par FD', aggregate(data,'FD','CGT'),'FD');
+    renderTableDual('Inscrits et voix CGT par UL', aggregateDual(data,'UL','Inscrits','CGT'),'UL');
   }
 });
 </script>
