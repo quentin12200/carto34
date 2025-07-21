@@ -4,15 +4,42 @@
   <meta charset="UTF-8">
   <title>Carte CGT - Voix Syndicales</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
   <style>
-    body {
-      font-family: 'Segoe UI', 'Arial', sans-serif;
-      background-color: #fdf8f6;
-      color: #222;
-      text-align: center;
-      padding: 1em;
-      margin: 0;
-    }
+  body {
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    background-color: #fdf8f6;
+    color: #222;
+    text-align: center;
+    padding: 1em;
+    margin: 0;
+  }
+  header {
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    margin-bottom:1em;
+    background:#fff;
+    border:2px solid #b00000;
+    border-radius:12px;
+    padding:0.6em 1em;
+    box-shadow:0 2px 12px #b0000033;
+  }
+  header img {
+    height:54px;
+    margin-right:18px;
+    border-radius:10px;
+    box-shadow:0 2px 8px #b0000050;
+  }
+  h2 {
+    margin:0;
+    font-family:'Arial Black','Segoe UI',sans-serif;
+    font-size:2.1em;
+    color:#b00000;
+    letter-spacing:1px;
+    text-shadow:1px 1px 0 #fff,2px 2px 0 #b0000022;
+  }
     #map {
       height: 70vh;
       width: 65%;
@@ -40,13 +67,6 @@
       gap: 1em;
       justify-content: center;
       align-items: flex-start;
-    }
-    h2 {
-      color: #b00000;
-      text-transform: uppercase;
-      font-size: 2em;
-      margin-bottom: 0.2em;
-      letter-spacing: 1px;
     }
     #syndicat-filters {
       display: flex;
@@ -134,7 +154,7 @@
   </style>
   <style>
     body {
-      background: linear-gradient(120deg,#fff 0%,#fdf6f6 60%,#fff0f0 100%);
+      background: linear-gradient(120deg,#fff 0%,#fdf4f4 60%,#ffecec 100%);
     }
     #ux-bar input:focus {
       background: #fff6f6;
@@ -209,9 +229,9 @@
       document.body.style.overflow = 'hidden';
     });
   </script>
-  <header style="display:flex;align-items:center;justify-content:flex-start;margin-bottom:1em;">
-    <img src="logoud34.jpg" alt="Logo CGT" style="height:54px;margin-right:18px;border-radius:10px;box-shadow:0 2px 8px #b0000050;">
-    <h2 style="margin:0;font-family:'Arial Black','Segoe UI',sans-serif;font-size:2.1em;color:#b00000;letter-spacing:1px;text-shadow:1px 1px 0 #fff,2px 2px 0 #b0000022;">Carte CGT - Voix Syndicales en Hérault</h2>
+  <header>
+    <img src="logoud34.jpg" alt="Logo CGT">
+    <h2>Carte CGT - Voix Syndicales en Hérault</h2>
   </header>
 
   <div id="syndicat-filters" style="margin-bottom: 1em;">
@@ -228,6 +248,8 @@
     <button onclick="showFDView()" id="fd-view-btn">Vue FD</button>
     <select id="fd-select" style="display:none; margin-left:1em; min-width:180px; border-radius:10px; border:1.5px solid #b00000; color:#b00000; background:#fff; font-weight:500;"></select>
     <button onclick="exitFDView()" id="fd-exit-btn" style="display:none; margin-left:1em;">Retour vue syndicat</button>
+    <button onclick="location.href='stats.html'">Statistiques</button>
+    <button onclick="resetView()">Recentrer</button>
   </div>
   <div id="orga-voix-total" style="margin-bottom:0.5em;font-size:1.25em;color:#b00000;font-weight:bold;"></div>
   <div id="syndicat-stats" style="margin-bottom:1em;font-size:1.1em;color:#333;"></div>
@@ -246,6 +268,7 @@
   <div id="table-container" style="margin:0 auto 0 auto;width:100%;max-width:none;overflow-x:visible;"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script src="ul.js"></script>
   <script>
     // --- Barre de recherche, tableau et export ---
@@ -438,6 +461,8 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
     let currentFD = null;
     let allFDs = [];
     let fdStats = null;
+    const clusterOpts = { disableClusteringAtZoom: 13 };
+    let defaultBounds = null;
     let currentSyndicat = 'ALL'; // pour filtrage tableau
     window.currentSyndicat = currentSyndicat;
     window.currentFD = currentFD;
@@ -560,10 +585,11 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
           // Mettre les points au premier plan
           pane: 'markerPane'
         });
+        const allCluster = L.markerClusterGroup(clusterOpts).addLayer(allPointsLayer);
         
         // Créer les couches par syndicat (pour les filtres) - au premier plan
         Object.keys(syndicatColors).forEach(syndicat => {
-          syndicatLayers[syndicat] = L.geoJSON(data, {
+          const layer = L.geoJSON(data, {
             filter: function(feature) {
               return parseFloat(feature.properties[syndicat] || 0) > 0;
             },
@@ -600,14 +626,16 @@ let query = searchInput ? (searchInput.value||'').toLowerCase() : '';
             // Mettre les points au premier plan
             pane: 'markerPane'
           });
+            syndicatLayers[syndicat] = L.markerClusterGroup(clusterOpts).addLayer(layer);
         });
         // Couche "Tous" - afficher tous les points par défaut
-        allLayerGroup = allPointsLayer;
+        allLayerGroup = allCluster;
         allLayerGroup.addTo(map);
+          defaultBounds = allLayerGroup.getBounds();
         
         // Centrer la carte sur les données du département 34
         if (allLayerGroup.getLayers().length > 0) {
-          map.fitBounds(allLayerGroup.getBounds());
+          map.fitBounds(defaultBounds);
         }
       })
       .catch(error => {
@@ -751,7 +779,7 @@ if (window.carencesLayer) {
   map.removeLayer(window.carencesLayer);
   window.carencesLayer = null;
 }
-window.carencesLayer = L.geoJSON(window.geoJsonData, {
+const carenceGeo = L.geoJSON(window.geoJsonData, {
     filter: feature => {
       const type = (feature.properties.Type || feature.properties.type || '').trim();
       return type === 'Carence';
@@ -770,6 +798,7 @@ window.carencesLayer = L.geoJSON(window.geoJsonData, {
     },
     onEachFeature: bindPopupSyndicat
   });
+  window.carencesLayer = L.markerClusterGroup(clusterOpts).addLayer(carenceGeo);
   console.log('carencesLayer.getLayers().length =', carencesLayer.getLayers().length);
   window.carencesLayer.addTo(map);
   if (carencesLayer.getLayers().length > 0) {
@@ -832,6 +861,8 @@ window.carencesLayer = L.geoJSON(window.geoJsonData, {
     function filterByFD() {
       const fdSelect = document.getElementById('fd-select');
       const fd = fdSelect.value;
+      // stocker la FD courante pour le filtrage du tableau
+      window.currentFD = fd || null;
 
       // Supprimer la couche FD précédente si elle existe
       if (window.fdLayer && map.hasLayer(window.fdLayer)) {
@@ -848,9 +879,13 @@ window.carencesLayer = L.geoJSON(window.geoJsonData, {
         map.removeLayer(allLayerGroup);
       }
 
-      if (!fd) return;
+      if (!fd) {
+        updateFDStats(null);
+        filterAndDisplay();
+        return;
+      }
       // Filtrer et afficher tous les points de la FD sélectionnée (casse/espaces ignorés)
-      window.fdLayer = L.geoJSON(voixData, {
+      const fdGeo = L.geoJSON(voixData, {
         filter: function(feature) {
           // Filtrage strict sur la valeur, mais trim pour ignorer espaces parasites
           const fdProp = (feature.properties['FD'] || '').trim();
@@ -872,7 +907,10 @@ window.carencesLayer = L.geoJSON(window.geoJsonData, {
           const popup = `<b>${props['Nom']||props['Raison sociale']||'?'}</b><br>FD: ${props['FD']||'?'}` + (props['Commune'] ? `<br>Commune: ${props['Commune']}` : '');
           layer.bindPopup(popup);
         }
-      }).addTo(map);
+      });
+      window.fdLayer = L.markerClusterGroup(clusterOpts).addLayer(fdGeo).addTo(map);
+      updateFDStats(fd);
+      filterAndDisplay();
     }
     window.filterByFD = filterByFD;
 
@@ -1128,6 +1166,16 @@ window.carencesLayer = L.geoJSON(window.geoJsonData, {
         });
       }, 1000); // attendre que les boutons soient dans le DOM
     });
+    document.addEventListener('DOMContentLoaded', function() {
+      const fdSelect = document.getElementById('fd-select');
+      if (fdSelect) {
+        fdSelect.addEventListener('change', filterByFD);
+      }
+    });
+function resetView() {
+  if (defaultBounds) map.fitBounds(defaultBounds);
+}
+window.resetView = resetView;
     // CSS moderne et responsive pour le tableau
     var style = document.createElement('style');
     style.innerHTML = `
